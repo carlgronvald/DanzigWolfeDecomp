@@ -2,6 +2,8 @@ cd("C:\\Users\\anton\\OneDrive - Københavns Universitet\\Uni\\Uni\\10. semester
 using JuMP
 using NamedArrays
 using LinearAlgebra, SparseArrays
+using LatexPrint
+
 
 include("JumpModelToMatrix.jl")
 include("MKPSstudentVersion.jl")
@@ -27,10 +29,10 @@ instances_10_30 = ["INS_10_30_1v.dat","INS_10_30_2v.dat","INS_10_30_3v.dat","INS
 
 
 A_5_10 = NamedArray(zeros(5,10))
-setnames!(A_5_10, ["Interger Objective Value", "Integer Upper Bound", "Relative Gap", "Time Spent", "LP Relaxation"], 1)   
+setnames!(A_5_10, ["Integer Objective Value", "Integer Upper Bound", "Relative Gap", "Time Spent", "LP Relaxation"], 1)   
 A_10_30 = NamedArray(zeros(5,10))
 setnames!(A_10_30, ["Interger Objective Value", "Integer Upper Bound", "Relative Gap", "Time Spent", "LP Relaxation"], 1) 
-#=
+
 for i=1:10
     T,N,n,b,c,f,d,a = readMKPS("instances/NC/"*instances_5_10[i]);
     myModel, x,y, consref = setupMKPS(c,f,a,d,b,n);
@@ -47,7 +49,7 @@ for i=1:10
     A_5_10[4,i] = solve_time(myModel)
     A_5_10[5,i] = objective_value(myModel2)
 end
-
+#=
 for i=1:10
     T,N,n,b,c,f,d,a = readMKPS("instances/50/"*instances_10_30[i]);
     myModel, x,y, consref = setupMKPS(c,f,a,d,b,n);
@@ -66,6 +68,10 @@ for i=1:10
 end
 =#
 
+lap(A_5_10)
+
+lap(A_10_30)
+
 ###########################################################################################################################################################
 ###########################################################################################################################################################
 ###############################################################                             ###############################################################
@@ -75,7 +81,7 @@ end
 ###########################################################################################################################################################
 
 # I actually split up by classes (i) instead of knapsacks(t). This gives larger blocks.
-T,N,n,b,c,f,d,a = readMKPS("mini-instance2.txt");
+T,N,n,b,c,f,d,a = readMKPS("mini-instance.txt");
 myModel, x,y, consref = setupMKPS(c,f,a,d,b,n);
 mip, constraintRefToRowIdDict = getConstraintMatrix(myModel);
 cons_mat = NamedArray(Matrix([mip.A mip.b]))
@@ -91,7 +97,7 @@ setnames!(cons_mat,[mip.varNames; "RHS"] , 2)
 ###########################################################################################################################################################
 
 # We setup the problem using the provided code
-myModel, blocks = setupMKPS_block(c,f,a,d,b,n,"I", false);
+myModel, blocks = setupMKPS_block(c,f,a,d,b,n,"T", false);
 mip, constraintRefToRowIdDict = getConstraintMatrix(myModel);
 blocksAsRowIdx = convertBlocks(blocks, constraintRefToRowIdDict);
 A0, b0, senseA0, ASub, bSub, senseSub, subvars, pPerSub = constructSubMatrices(mip, blocksAsRowIdx);
@@ -205,9 +211,15 @@ push!(extremePointForSub, k)
 #########################
 ######## ROUND 2 ########
 #########################
-
+objective_function(master, AffExpr)
 # We can now proceed with column generation
 optimize!(master)
+objective_value(master)
+objective_function(master, AffExpr)
+value.(lambdas)
+all_constraints(master, AffExpr, MOI.LessThan{Float64})
+all_constraints(master, AffExpr, MOI.EqualTo{Float64})
+
 #JuMP.objective_value(master)
 # We obtain the dual variables we need for the sub problems
 myPi = -dual.(consRef)
@@ -289,6 +301,20 @@ push!(extremePointForSub, k)
 
 # We can now proceed with column generation
 optimize!(master)
+objective_value(master)
+objective_function(master, AffExpr)
+value.(lambdas)
+all_constraints(master, AffExpr, MOI.LessThan{Float64})
+all_constraints(master, AffExpr, MOI.EqualTo{Float64})
+
+
+objective_value(master)
+value.(lambdas)
+
+objective_function(master, AffExpr)
+all_constraints(master, AffExpr, MOI.LessThan{Float64})
+all_constraints(master, AffExpr, MOI.GreaterThan{Float64})
+all_constraints(master, AffExpr, MOI.EqualTo{Float64})
 # JuMP.objective_value(master)
 # We obtain the dual variables we need for the sub problems
 myPi = -dual.(consRef)

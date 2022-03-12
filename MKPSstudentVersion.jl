@@ -84,6 +84,9 @@ function setupMKPS_block(c,f,a,d,b,n,block_choice, LP_relax)
                 end
             end
         end
+        for t = 1:T
+            push!(blocks[t], cap[t])
+        end
     else
         throw("Error: Choice either the classes(i) or the knapsacks(t) to make blocks from")
     end
@@ -219,7 +222,7 @@ function setupSub(sub::JuMP.Model, Asub, bsub, sense, subvars, varLB, varUB, vec
     end
     return xVars
 end
-
+(master, A0, b0, nSub, senseA0)
 function setupMaster(master::JuMP.Model, A0, b0, nSub, sense)
     (mA0, nA0) = size(A0[1])
     K = 1

@@ -44,12 +44,19 @@ function setupMKPS(c,f,a,d,b,n, LP_relax::Bool = false)
     return myModel, x, y, consRef
 end
 
-function setupMKPS_block(c,f,a,d,b,n,block_choice)
+function setupMKPS_block(c,f,a,d,b,n,block_choice, LP_relax)
     (N,T) = size(f)
     myModel =  Model(CPLEX.Optimizer)
-    
-    @variable(myModel, 0 <= x[i=1:N,j=1:n[i],1:T] <= 1)
-    @variable(myModel, 0 <= y[1:N,1:T] <= 1)
+
+    if LP_relax
+        @variable(myModel, 0 <= x[i=1:N,j=1:n[i],1:T] <= 1)
+        @variable(myModel, 0 <= y[1:N,1:T] <= 1)
+    elseif ~LP_relax
+        @variable(myModel, x[i=1:N,j=1:n[i],1:T], Bin)
+        @variable(myModel, y[1:N,1:T], Bin)
+    else 
+        throw("LP_relax should be true or false")
+    end
     
     @objective(myModel, Max, sum(c[i,j,t]*x[i,j,t] for i=1:N for j=1:n[i] for t=1:T) + sum(f[i,t]*y[i,t] for i=1:N for t=1:T))
     
@@ -293,9 +300,9 @@ function DWColGen(A0,ASub,b0,bSub, senseA0, senseSub, pPerSub,subvars, mip::MIP)
     sub = Vector{JuMP.Model}(undef, nSub)
 
     for k=1:nSub
-        sub[k] = Model(GLPK.Optimizer)
+        sub[k] = Model(CPLEX.Optimizer)
     end
-    master = Model(GLPK.Optimizer)
+    master = Model(CPLEX.Optimizer)
     xVars = []
     for k=1:nSub
         push!(xVars, setupSub(sub[k], ASub[k], bSub[k], senseSub[k], subvars[k], varLB, varUB, vecIsInt))
@@ -308,6 +315,7 @@ function DWColGen(A0,ASub,b0,bSub, senseA0, senseSub, pPerSub,subvars, mip::MIP)
     extremePointForSub = [-1]
     done = false
     iter = 1
+
     while !done
         optimize!(master)
         if termination_status(master) != MOI.OPTIMAL
@@ -318,14 +326,10 @@ function DWColGen(A0,ASub,b0,bSub, senseA0, senseSub, pPerSub,subvars, mip::MIP)
         myPi = reshape(myPi, 1, length(myPi))
         myKappa = -dual.(convexityCons)
         myKappa = reshape(myKappa, 1, length(myKappa))
-        println("myPi = $myPi")
-        println("myKappa = $myKappa")
         done = true
-        println("iteration: $iter, objective value = $(JuMP.objective_value(master))")
         bestRedCost = -1
         for k=1:nSub
             redCost, xVal = solveSub(sub, myPi, myKappa, pPerSub, A0, xVars, k)
-            print("sub $k red cost = $redCost, ")
             if redCost > bestRedCost
                 bestRedCost = redCost
             end
@@ -338,9 +342,8 @@ function DWColGen(A0,ASub,b0,bSub, senseA0, senseSub, pPerSub,subvars, mip::MIP)
             end
         end
         iter += 1
-        println("best reduced cost = $bestRedCost")
     end
-    println("Done after $(iter-1) iterations. Objective value = $(JuMP.objective_value(master))")
+    #println("Done after $(iter-1) iterations. Objective value = $(JuMP.objective_value(master))")
     # compute values of original variables
     origVarValSub = []
     for s = 1:length(subvars)
@@ -349,16 +352,16 @@ function DWColGen(A0,ASub,b0,bSub, senseA0, senseSub, pPerSub,subvars, mip::MIP)
     lambdaVal = value.(lambdas)
     for p=1:length(lambdaVal)
         if lambdaVal[p] > 0.0001
-            println("lambda_$p=", lambdaVal[p], ", sub=$(extremePointForSub[p]), extr.point=$(extremePoints[p])")
+            #println("lambda_$p=", lambdaVal[p], ", sub=$(extremePointForSub[p]), extr.point=$(extremePoints[p])")
             origVarValSub[extremePointForSub[p]] += lambdaVal[p]*extremePoints[p]
         end
     end
     for s = 1:length(subvars)
-        #println("var val for sub problem $s: $(origVarValSub[s])")
         for t=1:length(origVarValSub[s])
             if abs(origVarValSub[s][t]) > 0.0001
-                println("$(varNames[subvars[s][t]])=$(origVarValSub[s][t])")
+                #println("$(varNames[subvars[s][t]])=$(origVarValSub[s][t])")
             end
         end
     end
+    return JuMP.objective_value(master), origVarValSub
 end

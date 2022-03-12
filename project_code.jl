@@ -49,7 +49,7 @@ for i=1:10
     A_5_10[4,i] = solve_time(myModel)
     A_5_10[5,i] = objective_value(myModel2)
 end
-#=
+
 for i=1:10
     T,N,n,b,c,f,d,a = readMKPS("instances/50/"*instances_10_30[i]);
     myModel, x,y, consref = setupMKPS(c,f,a,d,b,n);
@@ -66,7 +66,7 @@ for i=1:10
     A_10_30[4,i] = solve_time(myModel)
     A_10_30[5,i] = objective_value(myModel2)
 end
-=#
+
 
 lap(A_5_10)
 
@@ -146,7 +146,7 @@ k = 1
 redCost1, xVal = solveSub(sub, myPi, myKappa, pPerSub, A0, xVars, k)
 
 # We check if the reduced cost is positive
-redCost1 > 0.0000001
+redCost1 > 0.0000001 # true
 
 # We calculate the A0.X1 which we are to update the pi constraint in the master with
 (mA0, nA0) = size(A0[k])
@@ -178,35 +178,10 @@ k = 2
 redCost2, xVal = solveSub(sub, myPi, myKappa, pPerSub, A0, xVars, k)
 
 # We check if the reduced cost is positive
-redCost2 > 0.0000001
-
-# We calculate the A0.X1 which we are to update the pi constraint in the master with
-(mA0, nA0) = size(A0[k])
-A0x = A0[k]*xVal
-
-# We add the new variable to the set of lambdas
-oldvars = JuMP.all_variables(master)
-new_var = @variable(master, base_name="lambda_$(length(oldvars))", lower_bound=0)
-
-# We update the objective function of the master by [c[k], f[k]]*newExtreme
-JuMP.set_objective_coefficient(master, new_var, dot(pPerSub[k],xVal))
-
-for i=1:mA0
-    # only insert non-zero elements (this saves memory and may make the master problem easier to solve)
-    if A0x[i] != 0
-        set_normalized_coefficient(consRef[i], new_var, A0x[i])
-    end
-end
-# add variable to convexity constraint.
-set_normalized_coefficient(convexityCons[k], new_var, 1)
-
-# We add the new extreme point and the corresponding lamda to our lists
-push!(lambdas,new_var)
-push!(extremePoints, xVal)
-push!(extremePointForSub, k)
+redCost2 > 0.0000001 # false
 
 # If just one of the reduced costs were positive we continue
-(redCost1>0.0000001) || (redCost2>0.0000001)
+(redCost1>0.0000001) || (redCost2>0.0000001) # true
 
 #########################
 ######## ROUND 2 ########
@@ -233,39 +208,14 @@ k = 1
 redCost1, xVal = solveSub(sub, myPi, myKappa, pPerSub, A0, xVars, k)
 
 # We check if the reduced cost is positive
-redCost1 > 0.0000001
-
-# We calculate the A0.X1 which we are to update the pi constraint in the master with
-(mA0, nA0) = size(A0[k])
-A0x = A0[k]*xVal
-
-# We add the new variable to the set of lambdas
-oldvars = JuMP.all_variables(master)
-new_var = @variable(master, base_name="lambda_$(length(oldvars))", lower_bound=0)
-
-# We update the objective function of the master by [c[k], f[k]]*newExtreme
-JuMP.set_objective_coefficient(master, new_var, dot(pPerSub[k],xVal))
-
-for i=1:mA0
-    # only insert non-zero elements (this saves memory and may make the master problem easier to solve)
-    if A0x[i] != 0
-        set_normalized_coefficient(consRef[i], new_var, A0x[i])
-    end
-end
-# add variable to convexity constraint.
-set_normalized_coefficient(convexityCons[k], new_var, 1)
-
-# We add the new extreme point and the corresponding lamda to our lists
-push!(lambdas,new_var)
-push!(extremePoints, xVal)
-push!(extremePointForSub, k)
+redCost1 > 0.0000001 # false
 
 ############## sub problem k = 2 ##############
 k = 2
 redCost2, xVal = solveSub(sub, myPi, myKappa, pPerSub, A0, xVars, k)
 
 # We check if the reduced cost is positive
-redCost2 > 0.0000001
+redCost2 > 0.0000001 # true
 
 # We calculate the A0.X1 which we are to update the pi constraint in the master with
 (mA0, nA0) = size(A0[k])
@@ -293,7 +243,7 @@ push!(extremePoints, xVal)
 push!(extremePointForSub, k)
 
 # If just one of the reduced costs were positive we continue
-(redCost1>0.0000001) || (redCost2>0.0000001)
+(redCost1>0.0000001) || (redCost2>0.0000001) # true
 
 #########################
 ######## ROUND 3 ########
@@ -328,7 +278,7 @@ k = 1
 redCost1, xVal = solveSub(sub, myPi, myKappa, pPerSub, A0, xVars, k)
 
 # We check if the reduced cost is positive
-redCost1 > 0.0000001
+redCost1 > 0.0000001 # false
 
 # The reduced cost is 0, i.e. not positive, and hence we proceed
 
@@ -337,12 +287,12 @@ k = 2
 redCost2, xVal = solveSub(sub, myPi, myKappa, pPerSub, A0, xVars, k)
 
 # We check if the reduced cost is positive
-redCost2 > 0.0000001
+redCost2 > 0.0000001 # false
 
 # The reduced cost is 0, i.e. not positive, and hence we proceed
 
 # If just one of the reduced costs were positive we continue
-(redCost1>0.0000001) || (redCost2>0.0000001)
+(redCost1>0.0000001) || (redCost2>0.0000001) # false
 
 # False and hence we are are finished
 
@@ -379,7 +329,7 @@ end
 ###########################################################################################################################################################
 ###########################################################################################################################################################
 T,N,n,b,c,f,d,a = readMKPS("mini-instance2.txt");
-myModel, blocks = setupMKPS_block(c,f,a,d,b,n,"I", false);
+myModel, blocks = setupMKPS_block(c,f,a,d,b,n,"T", false);
 mip, constraintRefToRowIdDict = getConstraintMatrix(myModel);
 blocksAsRowIdx = convertBlocks(blocks, constraintRefToRowIdDict);
 A0, b0, senseA0, ASub, bSub, senseSub, subvars, pPerSub = constructSubMatrices(mip, blocksAsRowIdx);
@@ -397,21 +347,23 @@ instances_10_30 = ["INS_10_30_1v.dat","INS_10_30_2v.dat","INS_10_30_3v.dat","INS
 
 
 
+A_5_10_T = NamedArray(zeros(8,10))
+setnames!(A_5_10_T, ["Interger Objective Value", "Integer Upper Bound", "Relative Gap", "Time Spent", "LP Relaxation", "ColGen Objective Value", "ColGen Time", "Int Sol"], 1)   
 A_5_10_I = NamedArray(zeros(8,10))
-setnames!(A_5_10_I, ["Interger Objective Value", "Integer Upper Bound", "Relative Gap", "Time Spent", "LP Relaxation", "ColGen Objective Value", "ColGen Time", "Int Sol"], 1)   
-A_10_30 = NamedArray(zeros(6,10))
-setnames!(A_10_30, ["Interger Objective Value", "Integer Upper Bound", "Relative Gap", "Time Spent", "LP Relaxation", "ColGen"], 1) 
+setnames!(A_5_10_T, ["Interger Objective Value", "Integer Upper Bound", "Relative Gap", "Time Spent", "LP Relaxation", "ColGen Objective Value", "ColGen Time", "Int Sol"], 1)  
+A_10_30 = NamedArray(zeros(8,10))
+setnames!(A_10_30, ["Interger Objective Value", "Integer Upper Bound", "Relative Gap", "Time Spent", "LP Relaxation", "ColGen Objective Value", "ColGen Time", "Int Sol"], 1) 
 
 function checkInt(x)
     bool_val = abs(x-round(x))<0.00000001
 end
 
-
+#=
 T,N,n,b,c,f,d,a = readMKPS("instances/50/"*instances_10_30[1]);
 
 myModel, x,y, consref = setupMKPS(c,f,a,d,b,n);
 myModel2, x2,y2, consref2 = setupMKPS(c,f,a,d,b,n, true);
-myModel3, blocks = setupMKPS_block(c,f,a,d,b,n,"I", false);
+myModel3, blocks = setupMKPS_block(c,f,a,d,b,n,"T", false);
 
 mip, constraintRefToRowIdDict = getConstraintMatrix(myModel3);
 blocksAsRowIdx = convertBlocks(blocks, constraintRefToRowIdDict);
@@ -431,6 +383,87 @@ is_int = all(bool_vals)
 gg = [var_vals[i][var_vals[i].>0] for i in 1:length(var_vals)]
 length(gg)
 sum(sum(checkInt(var_vals[i][j]) && var_vals[i][j]>0 for j in length(var_vals[i])) for i in 1:length(var_vals))
+=#
+for i=1:10
+    T,N,n,b,c,f,d,a = readMKPS("instances/NC/"*instances_5_10[i]);
+
+    myModel, x,y, consref = setupMKPS(c,f,a,d,b,n);
+    myModel2, x2,y2, consref2 = setupMKPS(c,f,a,d,b,n, true);
+    myModel3, blocks = setupMKPS_block(c,f,a,d,b,n,"T", false);
+
+    mip, constraintRefToRowIdDict = getConstraintMatrix(myModel3);
+    blocksAsRowIdx = convertBlocks(blocks, constraintRefToRowIdDict);
+    A0, b0, senseA0, ASub, bSub, senseSub, subvars, pPerSub = constructSubMatrices(mip, blocksAsRowIdx);
+
+    timeStart = time()
+    master_val, var_vals = DWColGen(A0,ASub,b0,bSub, senseA0, senseSub, pPerSub,subvars, mip)
+    time_spent = time()-timeStart
+
+    set_time_limit_sec(myModel, 60.0*20);
+    optimize!(myModel);
+
+    set_time_limit_sec(myModel2, 60.0*20)
+    optimize!(myModel2);
+
+    #check int val
+    bool_vals = []
+    for j = 1:length(var_vals)
+        push!(bool_vals,all(checkInt.(var_vals[j])))
+    end
+    is_int = all(bool_vals)
+        
+
+
+    A_5_10_T[1,i] = objective_value(myModel)
+    A_5_10_T[2,i] = objective_bound(myModel)
+    A_5_10_T[3,i] = MOI.get(myModel, MOI.RelativeGap())
+    A_5_10_T[4,i] = solve_time(myModel)
+    A_5_10_T[5,i] = objective_value(myModel2)
+    A_5_10_T[6,i] = master_val
+    A_5_10_T[7,i] = time_spent
+    A_5_10_T[8,i] = is_int
+end
+
+for i=1:10
+    T,N,n,b,c,f,d,a = readMKPS("instances/50/"*instances_10_30[i]);
+
+    myModel, x,y, consref = setupMKPS(c,f,a,d,b,n);
+    myModel2, x2,y2, consref2 = setupMKPS(c,f,a,d,b,n, true);
+    myModel3, blocks = setupMKPS_block(c,f,a,d,b,n,"T", false);
+
+    mip, constraintRefToRowIdDict = getConstraintMatrix(myModel3);
+    blocksAsRowIdx = convertBlocks(blocks, constraintRefToRowIdDict);
+    A0, b0, senseA0, ASub, bSub, senseSub, subvars, pPerSub = constructSubMatrices(mip, blocksAsRowIdx);
+
+    timeStart = time()
+    master_val, var_vals = DWColGen(A0,ASub,b0,bSub, senseA0, senseSub, pPerSub,subvars, mip)
+    time_spent = time()-timeStart
+
+    set_time_limit_sec(myModel, 60.0*20);
+    optimize!(myModel);
+
+    set_time_limit_sec(myModel2, 60.0*20)
+    optimize!(myModel2);
+
+    #check int val
+    bool_vals = []
+    for j = 1:length(var_vals)
+        push!(bool_vals,all(checkInt.(var_vals[j])))
+    end
+    is_int = all(bool_vals)
+        
+
+
+    A_10_30[1,i] = objective_value(myModel)
+    A_10_30[2,i] = objective_bound(myModel)
+    A_10_30[3,i] = MOI.get(myModel, MOI.RelativeGap())
+    A_10_30[4,i] = solve_time(myModel)
+    A_10_30[5,i] = objective_value(myModel2)
+    A_10_30[6,i] = master_val
+    A_10_30[7,i] = time_spent
+    A_10_30[8,i] = is_int
+end
+
 
 
 for i=1:10

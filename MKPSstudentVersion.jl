@@ -222,7 +222,7 @@ function setupSub(sub::JuMP.Model, Asub, bsub, sense, subvars, varLB, varUB, vec
     end
     return xVars
 end
-(master, A0, b0, nSub, senseA0)
+
 function setupMaster(master::JuMP.Model, A0, b0, nSub, sense)
     (mA0, nA0) = size(A0[1])
     K = 1
@@ -294,6 +294,8 @@ end
 
 
 function DWColGen(A0,ASub,b0,bSub, senseA0, senseSub, pPerSub,subvars, mip::MIP)
+    timeStart = time()
+    time_spent = time()-timeStart
     varNames = mip.varNames
     varLB = mip.varLB
     varUB = mip.varUB
@@ -319,7 +321,7 @@ function DWColGen(A0,ASub,b0,bSub, senseA0, senseSub, pPerSub,subvars, mip::MIP)
     done = false
     iter = 1
 
-    while !done
+    while !done && time_spent<1200
         optimize!(master)
         if termination_status(master) != MOI.OPTIMAL
             throw("Error: Non-optimal master-problem status")
@@ -330,12 +332,8 @@ function DWColGen(A0,ASub,b0,bSub, senseA0, senseSub, pPerSub,subvars, mip::MIP)
         myKappa = -dual.(convexityCons)
         myKappa = reshape(myKappa, 1, length(myKappa))
         done = true
-        bestRedCost = -1
         for k=1:nSub
             redCost, xVal = solveSub(sub, myPi, myKappa, pPerSub, A0, xVars, k)
-            if redCost > bestRedCost
-                bestRedCost = redCost
-            end
             if redCost > 0.00001
                 newVar = addColumnToMaster(master, pPerSub, A0, xVal, consRef, convexityCons,k)
                 push!(lambdas,newVar)
@@ -345,6 +343,7 @@ function DWColGen(A0,ASub,b0,bSub, senseA0, senseSub, pPerSub,subvars, mip::MIP)
             end
         end
         iter += 1
+        time_spent = time()-timeStart
     end
     #println("Done after $(iter-1) iterations. Objective value = $(JuMP.objective_value(master))")
     # compute values of original variables
